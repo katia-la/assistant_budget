@@ -6,7 +6,7 @@ from langchain.agents import  AgentExecutor, create_tool_calling_agent #tool_cal
 from dotenv import load_dotenv
 
 load_dotenv()
-
+df = None
 
 def load_and_clean_data(file):
     df = pd.read_excel(file,  header=2)
@@ -30,7 +30,7 @@ def analyze_transactions() -> dict:
     Returns:
         Dict avec summary (totaux) et by_month (détail mensuel)
     """
-    
+    global df 
     total_revenue = df[df['montant']>0]['montant'].sum()
     total_expenses = df[df['montant']<0]['montant'].sum()
 
@@ -115,7 +115,7 @@ def analyze_transactions_wothouttool(df) -> dict:  # fonction normale, pas @tool
 
 
 def main():
-    
+    global df
 
     # 1. load data
     df = load_and_clean_data('data/data.xls')
