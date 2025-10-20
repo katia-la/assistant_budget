@@ -142,7 +142,7 @@ def main():
     df = load_and_clean_data('data/data.xls')
     print('avec tools ...')
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
-    tools = [analyze_transactions]
+    tools = [analyze_transactions, categorize_transactions]
     # Prompt système
     prompt = ChatPromptTemplate.from_messages([
         ("system", """Tu es un assistant financier expert qui aide les utilisateurs 
@@ -157,14 +157,20 @@ def main():
 
     agent = create_tool_calling_agent(llm, tools, prompt)
     agent_executor = AgentExecutor(agent = agent, tools= tools)
-    #analyze_transactions(df)
-    # Test l'agent
+
+    # Test 1 
+    #response = agent_executor.invoke({
+    #    "input": "Analyse mes transactions et dis-moi comment je gère mon budget"
+    #})
+
+    #print(response['output'])
+    
+    #Test 2
+    print("Test 2: \n")
     response = agent_executor.invoke({
-        "input": "Analyse mes transactions et dis-moi comment je gère mon budget"
+        "input": "Catégorise mes dépenses par mois et dis-moi où je dépense le plus"
     })
-
     print(response['output'])
-
 
 if __name__ == "__main__":
     main()
