@@ -72,52 +72,6 @@ def analyze_transactions() -> dict:
     }
     return result
 
-def analyze_transactions_wothouttool(df) -> dict:  # fonction normale, pas @tool
-    """
-    Analyse les transactions bancaires et retourne:
-
-    - Total des revenus et dépenses
-    - Breakdown mensuel des revenus et dépenses
-    
-    Args:
-        df: DataFrame avec colonnes date_operation, type, operation, montant
-    Returns:
-        Dict avec summary (totaux) et by_month (détail mensuel)
-    """
-    total_revenue = df[df['montant']>0]['montant'].sum()
-    total_expenses = df[df['montant']<0]['montant'].sum()
-
-    # Group by année ET mois
-    monthly_revenue = df[df['montant']>0].groupby([
-        df['date_operation'].dt.year,
-        df['date_operation'].dt.month
-    ])['montant'].sum().to_dict()
-
-    monthly_expenses = df[df['montant']<0].groupby([
-        df['date_operation'].dt.year,
-        df['date_operation'].dt.month
-    ])['montant'].sum().to_dict()
-
-    # Les clés sont maintenant des tuples (2024, 12), (2025, 1), etc.
-    monthly_breakdown = {}
-    all_months = set(list(monthly_revenue.keys()) + list(monthly_expenses.keys()))
-    #print('all_months ', all_months)
-
-    for (year, month) in sorted(all_months):
-        month_key = f"{year}-{month:02d}"
-        monthly_breakdown[month_key] = {
-            "revenue": monthly_revenue.get((year, month), 0),
-            "expenses": monthly_expenses.get((year, month), 0)
-        }
-    
-    result = {
-        "summary": {
-            "total_revenue": total_revenue,
-            "total_expenses": total_expenses
-            },
-        "by_month": monthly_breakdown
-    }
-    return result
 
 def categorize_transactions(df) -> dict:
     """
