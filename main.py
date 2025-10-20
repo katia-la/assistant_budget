@@ -73,7 +73,8 @@ def analyze_transactions() -> dict:
     return result
 
 
-def categorize_transactions(df) -> dict:
+@tool
+def categorize_transactions() -> dict:
     """
     Catégorise automatiquement les transactions par operation :
     - Alimentation
@@ -89,10 +90,10 @@ def categorize_transactions(df) -> dict:
     import json
     import re
 
+    global df
     # Catégories possibles
     categories = ["Alimentation", "Transport", "Logement", "Loisirs", 
-                  "Santé", "Salaire", "Frais bancaires", "Autres"]
-    
+                  "Santé", "Salaire", "Frais bancaires", "Autres"] 
     all_categories = []
     i =  0
     while i < len(df):
@@ -114,7 +115,7 @@ def categorize_transactions(df) -> dict:
         [{{"index": 0, "category": "..."}}, {{"index": 1, "category": "..."}}, ...]
         """
         #2. Appeler le LLM par batch
-        llm = ChatOpenAI(model="gpt-4o-mini")
+        llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
         response = llm.invoke([{"role": "user", "content": prompt}])
         
         # 3. Parser la réponse du LLM, # Récupérer les catégories assignées
@@ -127,9 +128,10 @@ def categorize_transactions(df) -> dict:
 
     #Ajouter une colonne 'category' au DataFrame
     df['category'] = all_categories
-    # 5. Agréger par catégorie :Groupby + sum
+    # 5. Groupby et calculer totaux
     result = df.groupby('category')['montant'].sum().to_dict()
-    print(result)
+    
+    return result
     
 
 
