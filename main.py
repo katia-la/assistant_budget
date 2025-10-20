@@ -113,6 +113,65 @@ def analyze_transactions_wothouttool(df) -> dict:  # fonction normale, pas @tool
     }
     return result
 
+def categorize_transactions(df) -> dict:
+    """
+    Catégorise automatiquement les transactions par operation :
+    - Alimentation
+    - Transport
+    - Logement
+    - Loisirs
+    - Santé
+    - Autres
+    
+    Returns:
+        Dict avec montant total par catégorie
+    """
+    import json
+    import re
+
+    # Catégories possibles
+    categories = ["Alimentation", "Transport", "Logement", "Loisirs", 
+                  "Santé", "Salaire", "Frais bancaires", "Autres"]
+    
+    all_categories = []
+    i =  0
+    while i < len(df):
+        #1. Extraire les libellés à catégoriser
+        batch = df[i: i+20]
+
+        # Préparer le prompt
+        transactions_text = ""
+        for idx, row in batch.iterrows():
+            transactions_text += f"{idx} . {row['operation']}\n"
+            
+        prompt = f"""Catégorise ces transactions bancaires. 
+        
+        Catégories possibles : {', '.join(categories)}
+        Transactions :
+        {transactions_text}
+        
+        Réponds UNIQUEMENT avec une liste JSON au format :
+        [{{"index": 0, "category": "..."}}, {{"index": 1, "category": "..."}}, ...]
+        """
+        #2. Appeler le LLM par batch
+        llm = ChatOpenAI(model="gpt-4o-mini")
+        response = llm.invoke([{"role": "user", "content": prompt}])
+        
+        # 3. Parser la réponse du LLM, # Récupérer les catégories assignées
+        text = response.content.replace("```json", "").replace("```", "").strip()
+        data = json.loads(text)
+        llm_categories = [item['category'] for item in data]
+        all_categories.extend(llm_categories)
+
+        i += 20
+
+    #Ajouter une colonne 'category' au DataFrame
+    df['category'] = all_categories
+    # 5. Agréger par catégorie :Groupby + sum
+    result = df.groupby('category')['montant'].sum().to_dict()
+    print(result)
+    
+
 
 def main():
     global df
