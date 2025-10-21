@@ -175,19 +175,23 @@ def main():
     agent = create_tool_calling_agent(llm, tools, prompt)
     agent_executor = AgentExecutor(agent = agent, tools= tools)
 
-    # Test 1 
-    #response = agent_executor.invoke({
-    #    "input": "Analyse mes transactions et dis-moi comment je gère mon budget"
-    #})
+    # 3. agent ready to bu used
+    return agent_executor
 
-    #print(response['output'])
     
-    #Test 2
-    print("Test 2: \n")
-    response = agent_executor.invoke({
-        "input": "Catégorise mes dépenses par mois et dis-moi où je dépense le plus"
-    })
-    print(response['output'])
-
 if __name__ == "__main__":
-    main()
+    #initialize agent
+    agent = main()
+
+    print("Agent financier prêt ! Tapez 'quit' pour quitter.\n")
+    
+    # Boucle interactive
+    while True:
+        user_input = input("Vous : ")
+        
+        if user_input.lower() in ['quit', 'exit', 'q']:
+            print("Au revoir !")
+            break
+        
+        response = agent.invoke({"input": user_input})
+        print(f"\nAgent : {response['output']}\n")
