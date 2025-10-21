@@ -76,16 +76,17 @@ def analyze_transactions() -> dict:
 @tool
 def categorize_transactions() -> dict:
     """
-    Catégorise automatiquement les transactions par operation :
-    - Alimentation
-    - Transport
-    - Logement
-    - Loisirs
-    - Santé
-    - Autres
+    Catégorise automatiquement les transactions par catégorie et par mois :
+    Permet d'identifier les variations de dépenses et les mois problématiques.
+    
+    Catégories : Alimentation, Transport, Logement, Loisirs, Santé, 
+                 Frais bancaires, Salaire, Autres
     
     Returns:
-        Dict avec montant total par catégorie
+        Dict avec breakdown mensuel : 
+        {"2025-01": {"Alimentation": -85.50, ...},
+         "2025-02": {...},
+         ...}
     """
     import json
     import re
@@ -129,9 +130,19 @@ def categorize_transactions() -> dict:
     #Ajouter une colonne 'category' au DataFrame
     df['category'] = all_categories
     # 5. Groupby et calculer totaux
-    result = df.groupby('category')['montant'].sum().to_dict()
+    total_by_category = df.groupby('category')['montant'].sum().to_dict()
+
+    monthly_by_category = {}
     
-    return result
+    for (year, month), group in df.groupby([df['date_operation'].dt.year, 
+                                             df['date_operation'].dt.month]):
+        month_key = f"{year}-{month:02d}"
+        monthly_by_category[month_key] = group.groupby('category')['montant'].sum().to_dict()
+    
+    return {
+        "total": total_by_category,
+        "by_month": monthly_by_category
+    }
     
 
 
