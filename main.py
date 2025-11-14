@@ -3,6 +3,7 @@ from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 from langchain.agents import  AgentExecutor, create_tool_calling_agent #tool_calling_agent
+from sklearn.linear_model import LinearRegression
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -144,6 +145,41 @@ def categorize_transactions() -> dict:
         "by_month": monthly_by_category
     }
     
+
+def predict_monthly_expenses(revenue_input: float) -> float:
+    """
+    Prédit les dépenses mensuelles basées sur le revenu prévu.
+    
+    Args:
+        revenue_input: Revenu mensuel prévu
+        
+    Returns:
+        Montant des dépenses prédites
+    """
+    import numpy as np
+
+    global df
+    df["date_operation"] = pd.to_datetime(df["date_operation"])
+
+    # Créer une colonne mois au format YYYY-MM
+    df["month"] = df["date_operation"].dt.to_period("M")
+
+    # Calculer les revenus et dépenses par mois
+    monthly_summary = df.groupby("month")["montant"].agg(
+    total_expenses=lambda x: abs(x[x < 0].sum()),
+    total_revenue=lambda x: x[x > 0].sum()
+    ).reset_index()
+    # X et y
+    X = monthly_summary[["total_revenue"]]  # Feature : revenus
+    y = monthly_summary["total_expenses"]   # Target : dépenses
+    
+    model = LinearRegression()
+    model.fit(X, y)
+
+    revenue_input = pd.DataFrame([[revenue_input]], columns=["total_revenue"])
+    predicted_expenses = model.predict(revenue_input)[0]
+    print(predicted_expenses)
+    #return predicted_expenses
 
 
 def main():
