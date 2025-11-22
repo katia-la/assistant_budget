@@ -29,11 +29,16 @@ def load_and_clean_data(file):
 @tool
 def analyze_transactions() -> dict:
     """
-    Analyse les transactions bancaires et retourne:
+    Calcule (vue d'ensemble rapide):
 
     - Total des revenus et dépenses
     - Breakdown mensuel des revenus et dépenses
     
+    Utilise cette fonction pour :
+    - "Combien j'ai dépensé ce mois-ci ?"
+    - "Quel est mon total de revenus ?"
+    - Obtenir un résumé financier mensuel simple
+    - Des questions qui visent un ou des mois spécifiques
 
     Returns:
         Dict avec summary (totaux) et by_month (détail mensuel)
@@ -83,6 +88,12 @@ def categorize_transactions() -> dict:
     
     Catégories : Alimentation, Transport, Logement, Loisirs, Santé, 
                  Frais bancaires, Salaire, Autres
+
+
+    Utilise cette fonction  pour :
+    - "Combien je dépense en une CATÉGORIE spécifique ?"
+    - "Où va mon argent ?"
+    - Questions sur une CATÉGORIE spécifique          
     
     Returns:
         Dict avec breakdown mensuel : 
@@ -102,6 +113,7 @@ def categorize_transactions() -> dict:
     while i < len(df):
         #1. Extraire les libellés à catégoriser
         batch = df[i: i+20]
+        batch_indices = list(batch.index)
 
         # Préparer le prompt
         transactions_text = ""
@@ -124,8 +136,18 @@ def categorize_transactions() -> dict:
         # 3. Parser la réponse du LLM, # Récupérer les catégories assignées
         text = response.content.replace("```json", "").replace("```", "").strip()
         data = json.loads(text)
-        llm_categories = [item['category'] for item in data]
-        all_categories.extend(llm_categories)
+        #llm_categories = [item['category'] for item in data]
+        # ✔️ Recalage fiable des catégories par index réel
+        cats_for_batch = [""] * len(batch_indices)
+        for item in data:
+            idx = item["index"]
+            pos = batch_indices.index(idx)
+            cats_for_batch[pos] = item["category"]
+
+        # Ajout dans la liste globale
+        #all_categories.extend(llm_categories)
+        all_categories.extend(cats_for_batch)
+
 
         i += 20
 
@@ -181,6 +203,83 @@ def predict_monthly_expenses(revenue_input: float) -> float:
     predicted_expenses = model.predict(revenue_input)[0]
     print(predicted_expenses)
     #return predicted_expenses
+    
+    
+@tool
+def detect_spending_patterns() -> dict:
+    """
+    Détecte automatiquement les PATTERNS et COMPORTEMENTS cachés dans les dépenses.
+    Analyse les comportements par jour, semaine, et identifie les anomalies.
+    
+    Utilise cette fonction pour :
+    - "Quel jour je dépense le plus ?"
+    - "Y a-t-il des dépenses inhabituelles ?"
+    - "Quels sont mes patterns de dépenses ?"
+    - Combien représente les petites dépenses
+
+
+    Returns:
+        dict: Statistiques agrégées que l'agent IA interprétera intelligemment
+    """
+    global df
+    
+    # 1. Prendre uniquement les dépenses 
+    expenses = df[df['montant'] < 0].copy()
+    if len(expenses) == 0:
+        return {"error": "Aucune dépense trouvée dans les données"}
+    
+    # 2. Ajout colonnes temporelles
+    expenses['montant_abs'] = expenses['montant'].abs()
+    expenses['day'] = expenses['date_operation'].dt.day_name()
+    expenses['month'] = expenses['date_operation'].dt.to_period('M').astype(str)
+    #expenses['semaine'] = expenses['date_operation'].dt.isocalendar().week
+    nb_months = expenses['date_operation'].dt.to_period('M').nunique()
+    
+    # 3. Aagrégations de base (jour, mois, type d'opération)
+    
+    by_day = expenses.groupby('day')['montant_abs'].agg(['sum', 'count']).to_dict('index')
+    by_month = expenses.groupby('month')['montant_abs'].sum().to_dict()
+    by_type = expenses.groupby('type')['montant_abs'].agg(['sum', 'count']).to_dict('index')
+
+    # Micro-transactions (<5€)
+    micro_txs = expenses[expenses['montant_abs'] < 5]
+    micro_stats = {
+        "count": len(micro_txs),
+        "total": float(micro_txs['montant_abs'].sum()),
+        "percentage_of_total": float((micro_txs['montant_abs'].sum() / expenses['montant_abs'].sum()) * 100)
+    }
+    # Transactions importantes (>100€)
+    large_txs = expenses[expenses['montant_abs'] > 100]
+    large_stats = {
+        "count": len(large_txs),
+        "total": float(large_txs['montant_abs'].sum()),
+        "percentage_of_total": float((large_txs['montant_abs'].sum() / expenses['montant_abs'].sum()) * 100)
+    }
+    
+
+    # Statistiques globales
+    total_spent = float(expenses['montant_abs'].sum())
+    total_transactions = len(expenses)
+    
+    # 4. Retourner les stats pour l'IA 
+    return {
+        "periode": {
+            "debut": expenses['date_operation'].min().strftime('%Y-%m-%d'),
+            "fin": expenses['date_operation'].max().strftime('%Y-%m-%d'),
+            "nombre_jours": (expenses['date_operation'].max() - expenses['date_operation'].min()).days,
+            "nombre_mois": int(nb_months)
+        },
+        "statistiques_globales": {
+            "total_depense": total_spent,
+            "nombre_transactions": total_transactions,
+        },
+        "par_jour_semaine": by_day,
+        "par_mois": by_month,
+        "par_type_operation": by_type,
+        "micro_transactions": micro_stats,
+        "grosses_transactions": large_stats,
+    }
+
 
 
 def main():
@@ -188,18 +287,68 @@ def main():
 
     # 1. load data
     df = load_and_clean_data('data/data.xls')
-    print('avec tools ...')
+    #df = df[df['montant'] != 0]
+    #df = df[:100]
+    #print(len(df))
+    #predict_monthly_expenses(2500)
+    #detect_spending_patterns(df)
+    #exit()
+    # 2. agent
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
-    tools = [analyze_transactions, categorize_transactions]
+    tools = [analyze_transactions, categorize_transactions, detect_spending_patterns] 
     # Prompt système
     prompt = ChatPromptTemplate.from_messages([
-    ("system", prompts.PROMPT_ANALYZE_TRANSACTION),
+    ("system",  """ Tu es un assistant financier expert qui aide les utilisateurs 
+    à analyser leurs transactions bancaires. Tu es pédagogue, précis et tu donnes 
+    des conseils pratiques basés sur les données.
+    
+    IMPORTANT : 
+    - Tu dois UNIQUEMENT utiliser les données fournies par les tools
+    - Si un mois n'est pas dans les données, dis-le clairement à l'utilisateur
+    - N'INVENTE JAMAIS de chiffres ou d'analyses sur des données inexistantes
+    - Vérifie toujours la période couverte par les données avant de répondre
+    
+    Quand tu reçois les résultats d'analyse, présente-les de façon claire avec :
+- Des comparaisons chiffrées (%, ratios, évolutions)
+- Des insights contre-intuitifs (pas les évidences)
+- Des recommandations concrètes avec impact financier estimé
+- Toujours basé UNIQUEMENT sur les données réelles.
+
+     
+     STRUCTURE DE RÉPONSE OBLIGATOIRE uniquement Pour répondre à des questions comme analyse mes dépenses ou on cherche un rapport global et des pattern et pas sur des questions ou une cherche une information particulière :
+    sinon ne respecte pas la structure et  présente-les juste de de façon claire
+### Résumé Financier Global
+- **Total des Revenus** : [montant]€ (si disponible)
+- **Total des Dépenses** : [montant]€
+- **Solde Net** : [montant]€ (précise "vous avez dépensé plus que vous n'avez gagné" ou "vous avez dépensé moins que vous n'avez gagné")
+
+### Détails Mensuels
+Présente un tableau markdown avec cette structure exacte :
+| Mois       | Revenus (€) | Dépenses (€) | Solde (€)   |
+|------------|-------------|--------------|-------------|
+[Une ligne par mois présent dans les données]
+     
+
+### Observations et Insights
+1. **Concentration des Dépenses** : [Analyse la répartition par type de transaction ou par période ou par catégorie - cite les chiffres et % et la comparaison avec ce qui est "normal"]
+
+2. **Dépenses par Jour** : [Analyse les patterns par jour de la semaine - identifie les jours avec le plus de dépenses avec montants et % et la comparaison avec ce qui est "normal"]
+
+3. **Spikes Inhabituels** : 
+
+4. **Petites Transactions** : [Analyse l'impact des micro-transactions (<5€) : nombre, montant total, % du total]
+
+     
+### Recommandations
+[Liste des actions concrètes et raisonables basées sur les patterns détectés, avec si possible l'impact financier estimé, ex: une réduction de x% pars mois pourrait économiser environ € par an ]
+
+     """ ), #   PROMPT_detect_spending_patterns
     ("human", "{input}"),
     ("placeholder", "{agent_scratchpad}")
     ])
 
     agent = create_tool_calling_agent(llm, tools, prompt)
-    agent_executor = AgentExecutor(agent = agent, tools= tools)
+    agent_executor = AgentExecutor(agent = agent, tools= tools) #, verbose=True
 
     # 3. agent ready to bu used
     return agent_executor
@@ -208,7 +357,6 @@ def main():
 if __name__ == "__main__":
     #initialize agent
     agent = main()
-
     print("Agent financier prêt ! Tapez 'quit' pour quitter.\n")
     
     # Boucle interactive
