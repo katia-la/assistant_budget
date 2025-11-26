@@ -34,12 +34,15 @@ def analyze_transactions() -> dict:
     - Total des revenus et dépenses
     - Breakdown mensuel des revenus et dépenses
     
-    Utilise cette fonction pour :
-    - "Combien j'ai dépensé ce mois-ci ?"
+    Utilise cette fonction pour des demandes à réponses simples et rapide, comme:
+    - "Combien j'ai dépensé à un tel mois ?"
     - "Quel est mon total de revenus ?"
     - Obtenir un résumé financier mensuel simple
-    - Des questions qui visent un ou des mois spécifiques
+    - un aperçu des finances global et simple
 
+    Important:
+     - Réponds simplement et naturellement.
+     - Ignore les structures définit dans d'autres docstrings
     Returns:
         Dict avec summary (totaux) et by_month (détail mensuel)
     """
