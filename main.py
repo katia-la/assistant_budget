@@ -213,8 +213,11 @@ def detect_spending_patterns() -> dict:
     """
     Détecte automatiquement les PATTERNS et COMPORTEMENTS cachés dans les dépenses.
     Analyse les comportements par jour, semaine, et identifie les anomalies.
+
     
     Utilise cette fonction pour :
+    - Obtenir un résumé financier de toute la période avec des patterns
+    - analyse mes dépenses sur toute la période pour détecter des pattern
     - "Quel jour je dépense le plus ?"
     - "Y a-t-il des dépenses inhabituelles ?"
     - "Quels sont mes patterns de dépenses ?"
