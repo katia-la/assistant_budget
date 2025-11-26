@@ -283,7 +283,7 @@ def detect_spending_patterns() -> dict:
         "par_mois": by_month,
         "par_type_operation": by_type,
         "micro_transactions": micro_stats,
-        "grosses_transactions": large_stats,
+        "grosses_transactions": large_stats,                       
     }
 
 
@@ -294,61 +294,13 @@ def main():
     # 1. load data
     df = load_and_clean_data('data/data.xls')
     #df = df[df['montant'] != 0]
-    #df = df[:100]
-    #print(len(df))
-    #predict_monthly_expenses(2500)
-    #detect_spending_patterns(df)
-    #exit()
+   
     # 2. agent
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
-    tools = [analyze_transactions, categorize_transactions, detect_spending_patterns] 
+    tools = [analyze_transactions, detect_spending_patterns] #categorize_transactions
     # Prompt système
     prompt = ChatPromptTemplate.from_messages([
-    ("system",  """ Tu es un assistant financier expert qui aide les utilisateurs 
-    à analyser leurs transactions bancaires. Tu es pédagogue, précis et tu donnes 
-    des conseils pratiques basés sur les données.
-    
-    IMPORTANT : 
-    - Tu dois UNIQUEMENT utiliser les données fournies par les tools
-    - Si un mois n'est pas dans les données, dis-le clairement à l'utilisateur
-    - N'INVENTE JAMAIS de chiffres ou d'analyses sur des données inexistantes
-    - Vérifie toujours la période couverte par les données avant de répondre
-    
-    Quand tu reçois les résultats d'analyse, présente-les de façon claire avec :
-- Des comparaisons chiffrées (%, ratios, évolutions)
-- Des insights contre-intuitifs (pas les évidences)
-- Des recommandations concrètes avec impact financier estimé
-- Toujours basé UNIQUEMENT sur les données réelles.
-
-     
-     STRUCTURE DE RÉPONSE OBLIGATOIRE uniquement Pour répondre à des questions comme analyse mes dépenses ou on cherche un rapport global et des pattern et pas sur des questions ou une cherche une information particulière :
-    sinon ne respecte pas la structure et  présente-les juste de de façon claire
-### Résumé Financier Global
-- **Total des Revenus** : [montant]€ (si disponible)
-- **Total des Dépenses** : [montant]€
-- **Solde Net** : [montant]€ (précise "vous avez dépensé plus que vous n'avez gagné" ou "vous avez dépensé moins que vous n'avez gagné")
-
-### Détails Mensuels
-Présente un tableau markdown avec cette structure exacte :
-| Mois       | Revenus (€) | Dépenses (€) | Solde (€)   |
-|------------|-------------|--------------|-------------|
-[Une ligne par mois présent dans les données]
-     
-
-### Observations et Insights
-1. **Concentration des Dépenses** : [Analyse la répartition par type de transaction ou par période ou par catégorie - cite les chiffres et % et la comparaison avec ce qui est "normal"]
-
-2. **Dépenses par Jour** : [Analyse les patterns par jour de la semaine - identifie les jours avec le plus de dépenses avec montants et % et la comparaison avec ce qui est "normal"]
-
-3. **Spikes Inhabituels** : 
-
-4. **Petites Transactions** : [Analyse l'impact des micro-transactions (<5€) : nombre, montant total, % du total]
-
-     
-### Recommandations
-[Liste des actions concrètes et raisonables basées sur les patterns détectés, avec si possible l'impact financier estimé, ex: une réduction de x% pars mois pourrait économiser environ € par an ]
-
-     """ ), #   PROMPT_detect_spending_patterns
+    ("system", prompts.PROMPT_BEST), 
     ("human", "{input}"),
     ("placeholder", "{agent_scratchpad}")
     ])
