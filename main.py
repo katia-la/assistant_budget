@@ -45,7 +45,7 @@ def analyze_transactions() -> dict:
     """
     global df 
     total_revenue = df[df['montant']>0]['montant'].sum()
-    total_expenses = df[df['montant']<0]['montant'].sum()
+    total_expenses = df[df['montant']<0]['montant'].abs().sum()
 
     # Group by année ET mois
     monthly_revenue = df[df['montant']>0].groupby([
@@ -56,7 +56,7 @@ def analyze_transactions() -> dict:
     monthly_expenses = df[df['montant']<0].groupby([
         df['date_operation'].dt.year,
         df['date_operation'].dt.month
-    ])['montant'].sum().to_dict()
+    ])['montant'].sum().abs().to_dict()
 
     # Les clés sont maintenant des tuples (2024, 12), (2025, 1), etc.
     monthly_breakdown = {}
