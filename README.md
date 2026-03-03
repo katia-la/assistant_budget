@@ -1,4 +1,4 @@
-# 💰 Assistant Budget - End-to-End AI Agent Project
+# 💰 Assistant Budget - End-to-End AI Assistant Project
 
 > A financial assistant that analyzes your banking transactions.  
 
@@ -6,7 +6,7 @@
 
 ### Purpose
 
-Build and ship a full AI agent solution for analyzing bank transactions - from tool setup and prompts to a deployement on AWS.
+Build and ship a full AI solution for analyzing bank transactions - from tool setup and prompts to a deployement on AWS.
 
 ### Problem solved & benefits
 - Faster insights: Answers questions about spending patterns instantly instead of manual spreadsheet analysis.
@@ -15,9 +15,9 @@ Build and ship a full AI agent solution for analyzing bank transactions - from t
 
 ### What I built
 
-- Model and setup : OpenAI API + model configuration.
+- Model and setup : OpenAI API + prompts configuration.
 - Inference service: FastAPI app.
-- Containerization: Docker image with uvicorn.
+- Containerization: Docker image.
 - CI/CD: GitHub Actions builds the image and pushes to Docker Hub; optionally triggers an ECS service update.
 - Orchestration: AWS ECS Fargate runs the container (serverless).
 
